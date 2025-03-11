@@ -1,10 +1,10 @@
 const express=require('express')
 const cors=require('cors')
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.vu8ej.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-const port  =process.env.PORT || 8000
+const port  =process.env.PORT || 7001
 
 const app=express()
 
@@ -21,6 +21,8 @@ app.get('/',(req,res)=>{
     res.send('Hello from stayease')
 })
 
+
+//Collectiom
 
 
 
@@ -47,6 +49,60 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
+const roomCollection=client.db("stayEase").collection("rooms")
+
+//Get all jobs data
+
+app.get('/rooms',async(req,res)=>{
+    const result=await roomCollection.find().toArray()
+    res.send(result)
+
+})
+
+
+
+//Get single Job data
+
+app.get('/room/:id',async(req,res)=>{
+  const id=req.params.id
+  const query={_id:new ObjectId(id)}
+  const result=await roomCollection.findOne(query)
+  res.send(result)
+
+})
+
+app.get('/room-count',async(req,res)=>{
+  const count=await roomCollection.countDocuments()
+  res.send({count})
+
+})
+
+//Get all data for pagination
+app.get('/all-rooms', async (req, res) => {
+  const pages = parseInt(req.query.pages)-1 
+  const size = parseInt(req.query.size)
+  const search=req.params.search
+  
+  const sort=req.query.sort
+  console.log(sort);
+
+  console.log(pages, size);
+  let query={
+    roomName:{$regex:search,$options:"i"}
+
+  };
+const options={}
+if(sort) {
+  options.sort={pricePerNight: sort === 'asc' ? 1 : -1 }
+}
+  const result = await roomCollection.find(query,options).
+  skip(pages * size).limit(size)
+  .toArray();
+
+  res.send(result);
+});
+
 
 
 
